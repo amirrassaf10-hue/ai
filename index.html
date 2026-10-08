@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PARSAI — دستیار فارسی</title>
+<title>PAP AI — دستیار فارسی</title>
 <style>
 :root{--bg:#07080d;--panel:#0d1018;--line:#ffffff12;--text:#edf3ff;--muted:#8792a8;--a:#5ee7ff;--b:#8b5cf6}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#18344c 0,transparent 38%),var(--bg);color:var(--text);font-family:Tahoma,Arial,sans-serif;min-height:100vh}
@@ -15,22 +15,33 @@
 .composer{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);width:min(900px,calc(100% - 28px));padding:9px;border:1px solid #ffffff18;background:#0b0e16e8;backdrop-filter:blur(18px);border-radius:18px;box-shadow:0 20px 70px #0008;display:flex;gap:8px;z-index:4}.composer textarea{flex:1;resize:none;border:0;outline:0;background:transparent;color:var(--text);font:14px Tahoma;padding:11px;min-height:44px;max-height:130px}.btn{width:45px;height:45px;border:1px solid var(--line);border-radius:13px;background:#ffffff08;color:#dcecff;cursor:pointer}.send{background:var(--a);color:#031014;border:0;font-size:18px}.btn:hover{border-color:#5ee7ff55}.hint{position:absolute;bottom:-20px;right:12px;font-size:9px;color:#58657a}
 #voice{font-size:16px}.voiceOn{color:var(--a)!important;border-color:#5ee7ff66!important}
 .clear{font-size:10px;color:var(--muted);cursor:pointer}
+
+.options{position:fixed;top:72px;left:18px;width:min(330px,calc(100% - 36px));background:#0b0f18f5;border:1px solid #ffffff18;backdrop-filter:blur(20px);border-radius:16px;padding:16px;z-index:8;box-shadow:0 20px 80px #0009;display:none}.options.open{display:block}.opt{display:flex;justify-content:space-between;align-items:center;margin:12px 0;font-size:12px;color:#b7c2d4}.opt select,.opt input{background:#121824;border:1px solid #ffffff16;color:#eaf3ff;border-radius:9px;padding:7px}.check{accent-color:#5ee7ff}
 @media(max-width:600px){.top{height:60px}.chat{padding:18px 10px 120px}.bubble{font-size:13px}.composer{bottom:10px}.welcome h1{font-size:30px}}
 </style>
 </head>
 <body>
 <div class="app">
-<header class="top"><div class="brand">PARS<span>AI</span></div><div><span class="clear" id="clear">پاک کردن گفتگو</span> <span class="online"><i></i>ONLINE</span></div></header>
+<header class="top"><div class="brand">PAP<span>AI</span></div><div><button class="btn" id="opts" style="width:auto;height:34px;padding:0 11px;margin-left:8px">⚙ تنظیمات</button><span class="clear" id="clear">پاک کردن گفتگو</span> <span class="online"><i></i>ONLINE</span></div></header>
 <main class="chat" id="chat">
 <section class="welcome" id="welcome">
 <div>
 <div class="orb"></div>
-<h1>سلام، من PARSAI هستم.</h1>
+<h1>سلام، من PAP AI هستم.</h1>
 <p>فارسی صحبت کن؛ سؤال بپرس، ایده بده، کد بخواه یا حتی با من گفت‌وگو کن.</p>
 <div class="suggest"><button class="btn" data-q="یک ایده خفن برای یک سایت HTML بده">ایده سایت</button><button class="btn" data-q="فرق هوش مصنوعی و یادگیری ماشین چیست؟">توضیح بده</button><button class="btn" data-q="یک کد HTML خفن و کوتاه بنویس">کدنویسی</button></div>
 </div>
 </section>
 </main>
+
+<div class="options" id="options">
+<b style="font-size:13px">تنظیمات PAP AI</b>
+<label class="opt">سرعت خواندن <input id="rate" type="range" min="1" max="2" step=".05" value="1.25"></label>
+<label class="opt">صدای پاسخ <input id="tts" class="check" type="checkbox" checked></label>
+<label class="opt">پاسخ سریع <input id="fast" class="check" type="checkbox" checked></label>
+<label class="opt">حالت شب <select id="mode"><option value="night">Night</option><option value="deep">Deep</option></select></label>
+<button class="btn" id="stop" style="width:100%">■ توقف خواندن</button>
+</div>
 <div class="composer">
 <button class="btn" id="voice" title="صحبت با میکروفون">🎙</button>
 <textarea id="input" rows="1" placeholder="پیامت را بنویس..."></textarea>
@@ -40,9 +51,10 @@
 </div>
 <script src="https://js.puter.com/v2/"></script>
 <script>
+const $=id=>document.getElementById(id);
 const chat=document.getElementById('chat'),input=document.getElementById('input'),send=document.getElementById('send'),welcome=document.getElementById('welcome');
 let messages=JSON.parse(localStorage.getItem('parsai-chat')||'[]');
-const system={role:'system',content:`تو PARSAI هستی؛ یک دستیار هوش مصنوعی فارسی‌زبان، صمیمی، باهوش و کاربردی. همیشه پاسخ را به فارسی بده مگر کاربر زبان دیگری بخواهد. اگر سؤال فنی بود دقیق و با مثال جواب بده. اگر لازم بود کد کامل و قابل اجرا بده. ادعا نکن انسان هستی. پاسخ‌ها را واضح و نه بی‌دلیل طولانی بنویس.`};
+const system={role:'system',content:`تو PAP AI هستی؛ یک دستیار هوش مصنوعی فارسی‌زبان، صمیمی، باهوش و کاربردی. همیشه پاسخ را به فارسی بده مگر کاربر زبان دیگری بخواهد. اگر سؤال فنی بود دقیق و با مثال جواب بده. اگر لازم بود کد کامل و قابل اجرا بده. ادعا نکن انسان هستی. پاسخ‌ها را واضح و نه بی‌دلیل طولانی بنویس.`};
 function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
 function add(role,text){let d=document.createElement('div');d.className='msg '+role;d.innerHTML=`<div class="avatar">${role==='user'?'YOU':'AI'}</div><div class="bubble">${esc(text)}</div>`;chat.appendChild(d);chat.scrollTop=chat.scrollHeight}
 function render(){if(messages.length){welcome.style.display='none';messages.forEach(m=>add(m.role==='user'?'user':'ai',m.content))}}
@@ -52,9 +64,24 @@ async function ask(q){
 q=q.trim();if(!q)return;
 welcome.style.display='none';add('user',q);messages.push({role:'user',content:q});save();input.value='';input.style.height='auto';typing();send.disabled=true;
 try{
-const r=await puter.ai.chat([system,...messages],{model:'gpt-5.6-luna',stream:true,tools:[{type:'web_search'}]});
+const r=await puter.ai.chat([system,...messages],{model:'openai/gpt-5.6-luna',stream:true,tools:[{type:'web_search'}]});
 document.getElementById('typing')?.remove();let text='';let d=document.createElement('div');d.className='msg ai';d.innerHTML='<div class="avatar">AI</div><div class="bubble"></div>';chat.appendChild(d);let bubble=d.querySelector('.bubble');
-for await(const part of r){if(part.type==='text'){text+=part.text;bubble.textContent=text;chat.scrollTop=chat.scrollHeight}}
+let spokenBuffer='';
+for await(const part of r){
+ if(part?.type==='error') throw new Error(part.message||'خطا در پاسخ مدل');
+ if(part?.type==='text' && part.text){
+   text+=part.text;bubble.textContent=text;chat.scrollTop=chat.scrollHeight;
+   if($('tts').checked){
+     spokenBuffer+=part.text;
+     let cut;
+     while((cut=spokenBuffer.match(/^(.+?[.!?؟؛])(?:\s|$)/))){
+       speakChunk(cut[1]);
+       spokenBuffer=spokenBuffer.slice(cut[1].length).trimStart();
+     }
+   }
+ }
+}
+if($('tts').checked && spokenBuffer.trim()) speakChunk(spokenBuffer);
 if(!text) text='پاسخی دریافت نشد.';
 bubble.textContent=text;messages.push({role:'assistant',content:text});save();speak(text);
 }catch(e){document.getElementById('typing')?.remove();add('ai','خطا در ارتباط با هوش مصنوعی: '+(e.message||e));}
@@ -63,10 +90,37 @@ send.disabled=false;input.focus();
 send.onclick=()=>ask(input.value);input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask(input.value)}});input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,130)+'px'});
 document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>ask(b.dataset.q));
 document.getElementById('clear').onclick=()=>{messages=[];localStorage.removeItem('parsai-chat');location.reload()};
-function speak(text){if(!('speechSynthesis'in window))return; speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(text.replace(/```[\s\S]*?```/g,''));u.lang='fa-IR';u.rate=.95;speechSynthesis.speak(u)}
+let speechQueue=[],speaking=false;
+function speakChunk(text){
+ if(!text.trim()||!$('tts').checked)return;
+ speechQueue.push(text.trim()); if(!speaking)playNext();
+}
+function speak(text){
+ if(!$('tts').checked || !('speechSynthesis' in window)) return;
+ speechSynthesis.cancel(); speechQueue=[]; speaking=false;
+ let clean=text.replace(/```[\s\S]*?```/g,'').replace(/\s+/g,' ').trim();
+ let parts=clean.match(/[^.!?؟،؛]+[.!?؟؛]?/g)||[clean];
+ speechQueue=parts.map(x=>x.trim()).filter(Boolean); playNext();
+}
+function playNext(){
+ if(!speechQueue.length){speaking=false;return}
+ speaking=true; let u=new SpeechSynthesisUtterance(speechQueue.shift());
+ u.lang='fa-IR';u.rate=Number($('rate').value);u.pitch=1;u.volume=1;
+ u.onend=playNext;u.onerror=playNext;speechSynthesis.speak(u);
+}
+
 const V=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(V){let rec=new V();rec.lang='fa-IR';rec.interimResults=false;rec.onresult=e=>{input.value=e.results[0][0].transcript;ask(input.value)};rec.onstart=()=>document.getElementById('voice').classList.add('voiceOn');rec.onend=()=>document.getElementById('voice').classList.remove('voiceOn');document.getElementById('voice').onclick=()=>rec.start()}else document.getElementById('voice').onclick=()=>alert('تشخیص صدای فارسی در این مرورگر پشتیبانی نمی‌شود.');
+$('opts').onclick=()=>$('options').classList.toggle('open');
+$('stop').onclick=()=>{speechSynthesis.cancel();speechQueue=[];speaking=false};
+$('mode').onchange=e=>{if(e.target.value==='deep'){document.documentElement.style.setProperty('--bg','#020309');document.documentElement.style.setProperty('--panel','#080b12')}else{document.documentElement.style.setProperty('--bg','#07080d');document.documentElement.style.setProperty('--panel','#0d1018')}};
+document.addEventListener('click',e=>{if($('options').classList.contains('open')&&!e.target.closest('#options')&&!e.target.closest('#opts'))$('options').classList.remove('open')});
 render();
+window.addEventListener('load',()=>{
+ if(location.protocol==='file:'){
+   setTimeout(()=>add('ai','برای اتصال به هوش مصنوعی، این فایل را مستقیماً با file:// باز نکن؛ آن را روی سایت/HTTPS اجرا کن یا با یک سرور محلی مثل Live Server باز کن.'),300);
+ }
+});
 </script>
 </body>
 </html>
